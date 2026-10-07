@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0c10">
+  <title>经典FC坦克大战 (Battle City 1990) - 电脑手机跨端网页版</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="game-container">
+    <!-- 顶部状态信息条 (HUD) -->
+    <header class="hud-bar">
+      <div class="hud-item">
+        <span class="hud-label">得分</span>
+        <span id="hudScore" class="hud-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">最高</span>
+        <span id="hudHighScore" class="hud-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">关卡</span>
+        <span id="hudStage" class="hud-value">1</span>
+      </div>
+      <div class="hud-item">
+        <span id="hudLives" class="hud-value hud-lives">♥ 3</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">敌军</span>
+        <span id="hudEnemies" class="hud-value">20</span>
+      </div>
+      <div class="hud-item">
+        <button id="muteBtn" class="hud-btn" title="开关声音">🔊 音效</button>
+        <button id="pauseBtn" class="hud-btn" title="暂停游戏">⏸️</button>
+        <button id="menuBtn" class="hud-btn" title="主菜单">🏠</button>
+      </div>
+    </header>
+
+    <!-- 游戏舞台视口 -->
+    <main class="viewport-wrapper">
+      <canvas id="gameCanvas" width="416" height="416"></canvas>
+
+      <!-- 地图编辑器悬浮工具条 -->
+      <div id="editorToolbar" class="editor-toolbar">
+        <div class="brush-list">
+          <button class="brush-btn active" data-tile="1">🧱 砖块</button>
+          <button class="brush-btn" data-tile="2">🛡️ 铁墙</button>
+          <button class="brush-btn" data-tile="3">🌊 水面</button>
+          <button class="brush-btn" data-tile="4">🌿 草丛</button>
+          <button class="brush-btn" data-tile="5">🧊 冰面</button>
+          <button class="brush-btn" data-tile="0">🧹 橡皮擦</button>
+        </div>
+        <div class="editor-actions">
+          <button id="editorSavePlayBtn" class="editor-action-btn primary">💾 试玩地图</button>
+          <button id="editorClearBtn" class="editor-action-btn danger">🗑️ 清空</button>
+          <button id="editorExportBtn" class="editor-action-btn">📤 导出</button>
+          <button id="editorImportBtn" class="editor-action-btn">📥 导入</button>
+          <button id="editorExitBtn" class="editor-action-btn">✖ 退出</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- PC 电脑快捷键提示条 -->
+    <div class="desktop-controls-tip">
+      <span>移动: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / 方向键</span>
+      <span>开火: <kbd>Space</kbd> / <kbd>J</kbd></span>
+      <span>暂停: <kbd>P</kbd></span>
+    </div>
+
+    <!-- 手机端触控街机控制器 (轮盘摇杆) -->
+    <footer class="touch-controller">
+      <!-- 虚拟轮盘摇杆 (Joystick) -->
+      <div id="virtualJoystick" class="virtual-joystick">
+        <div class="joystick-base">
+          <div class="joystick-ring-ticks">
+            <span class="joy-tick tick-u" data-dir="0">▲</span>
+            <span class="joy-tick tick-r" data-dir="1">▶</span>
+            <span class="joy-tick tick-d" data-dir="2">▼</span>
+            <span class="joy-tick tick-l" data-dir="3">◀</span>
+          </div>
+          <div class="joystick-crosshair"></div>
+          <div id="joystickKnob" class="joystick-knob">
+            <div class="knob-ring"></div>
+            <div class="knob-center"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 开火动作键 -->
+      <div class="action-buttons">
+        <button id="fireBtn" class="fire-btn">
+          FIRE
+          <span>开火</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- 主菜单弹窗 -->
+    <div id="mainMenuModal" class="modal-overlay active">
+      <div class="modal-card">
+        <h2 class="modal-title">TANK BATTLE 1990</h2>
+        <p class="modal-subtitle">经典红白机坦克大战 · 电脑/手机跨端版</p>
+        <div class="menu-buttons">
+          <button id="startCampaignBtn" class="menu-btn primary">▶ 开始战役 (第一关)</button>
+          <div style="display: flex; gap: 8px;">
+            <select id="stageSelect" class="menu-btn" style="flex: 1; padding: 10px; font-size: 14px;">
+              <option value="1">选择第 1 关 (经典平原)</option>
+              <option value="2">选择第 2 关 (水域丛林)</option>
+              <option value="3">选择第 3 关 (冰原迷宫)</option>
+              <option value="4">选择第 4 关 (钢铁要塞)</option>
+              <option value="5">选择第 5 关 (决战终局)</option>
+            </select>
+            <button id="startSelectedStageBtn" class="menu-btn" style="flex: 1;">选关出发</button>
+          </div>
+          <button id="openEditorBtn" class="menu-btn">🛠️ 自定义地图编辑器</button>
+          <button id="openHelpBtn" class="menu-btn">📖 游戏规则与道具指南</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 失败弹窗 (Game Over) -->
+    <div id="gameOverModal" class="modal-overlay">
+      <div class="modal-card">
+        <h2 class="modal-title" style="color: var(--accent-red);">GAME OVER</h2>
+        <p id="gameOverReason" class="modal-subtitle">老鹰基地已被摧毁！</p>
+        <p id="finalScoreText" style="color: var(--accent-gold); font-size: 18px; margin-bottom: 20px; font-family: monospace;">得分: 0</p>
+        <div class="menu-buttons">
+          <button id="retryBtn" class="menu-btn primary">🔄 重新挑战</button>
+          <button id="gameOverMenuBtn" class="menu-btn">🏠 返回主菜单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 胜利弹窗 (Stage Cleared) -->
+    <div id="victoryModal" class="modal-overlay">
+      <div class="modal-card">
+        <h2 class="modal-title" style="color: #38b000;">STAGE CLEARED!</h2>
+        <p class="modal-subtitle">成功歼灭全部 20 辆敌军！</p>
+        <p id="victoryScoreText" style="color: var(--accent-gold); font-size: 18px; margin-bottom: 20px; font-family: monospace;">得分: 0</p>
+        <div class="menu-buttons">
+          <button id="nextStageBtn" class="menu-btn primary">🚀 进入下一关</button>
+          <button id="victoryMenuBtn" class="menu-btn">🏠 返回主菜单</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 说明与图鉴弹窗 -->
+    <div id="helpModal" class="modal-overlay">
+      <div class="modal-card" style="max-width: 440px;">
+        <h2 class="modal-title">📖 战斗手册</h2>
+        <div class="help-content">
+          <h4>🎮 操控方式</h4>
+          <ul>
+            <li><b>电脑端</b>：WASD 或 方向键移动，Space / J 开火，P 暂停。</li>
+            <li><b>手机端</b>：滑动左侧【虚拟轮盘摇杆】进行360°平滑触控转向与行进，右侧大按钮开火。</li>
+          </ul>
+
+          <h4>🛡️ 地形机制</h4>
+          <ul>
+            <li>🧱 <b>红砖</b>：可被任何炮弹逐块击毁。</li>
+            <li>🛡️ <b>铁墙</b>：普通炮弹无法击破，四阶重坦或暴击炮可击毁。</li>
+            <li>🌊 <b>水面</b>：坦克无法通过，但炮弹可以自由穿透。</li>
+            <li>🌿 <b>草丛</b>：可遮挡坦克隐蔽伏击。</li>
+            <li>🧊 <b>冰面</b>：行驶产生惯性滑行效果。</li>
+            <li>🦅 <b>老鹰基地</b>：必须全力保护，被击中即判负！</li>
+          </ul>
+
+          <h4>🎁 强化道具</h4>
+          <ul>
+            <li>⭐ <b>五角星</b>：提升火炮档位（提速、双管炮、碎铁墙）。</li>
+            <li>🛡️ <b>钢盔</b>：获得 12 秒无敌金身光环。</li>
+            <li>💣 <b>手雷</b>：全屏敌军连环大爆炸轰杀。</li>
+            <li>⏱️ <b>怀表</b>：全场敌军定身冻结 10 秒。</li>
+            <li>⛏️ <b>铁铲</b>：老鹰周围红砖变铁墙 15 秒。</li>
+            <li>🎖️ <b>坦克</b>：增加 1 条复活生命。</li>
+            <li>🚀 <b>火箭靴</b>：短时间内大幅提升行进速度。</li>
+            <li>⚡ <b>激光炮</b>：穿透重装铁壁并造成暴击伤害。</li>
+          </ul>
+
+          <h4>🚜 敌军编制</h4>
+          <ul>
+            <li>1. <b>普通装甲车</b> (100分)：平衡型巡逻。</li>
+            <li>2. <b>急速轻坦</b> (200分)：移动迅猛，偷袭基地。</li>
+            <li>3. <b>强击炮坦</b> (300分)：炮弹飞行极快。</li>
+            <li>4. <b>重装巨坦</b> (400分)：拥有 4 点生命值，受击变色。</li>
+            <li>✨ <b>红光闪烁车</b>：击毁必掉落强化宝物！</li>
+          </ul>
+        </div>
+        <div style="margin-top: 16px;">
+          <button id="closeHelpBtn" class="menu-btn primary" style="width: 100%;">返回</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 脚本加载 -->
+  <script src="js/constants.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/maps.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/powerup.js"></script>
+  <script src="js/bullet.js"></script>
+  <script src="js/tank.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/game.js"></script>
+
+  <!-- 界面交互与事件绑定脚本 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const mainMenuModal = document.getElementById('mainMenuModal');
+      const gameOverModal = document.getElementById('gameOverModal');
+      const victoryModal = document.getElementById('victoryModal');
+      const helpModal = document.getElementById('helpModal');
+      const editorToolbar = document.getElementById('editorToolbar');
+
+      // 菜单按钮交互
+      document.getElementById('startCampaignBtn').addEventListener('click', () => {
+        mainMenuModal.classList.remove('active');
+        gameInstance.startStage(1);
+      });
+
+      document.getElementById('startSelectedStageBtn').addEventListener('click', () => {
+        const stage = parseInt(document.getElementById('stageSelect').value, 10);
+        mainMenuModal.classList.remove('active');
+        gameInstance.startStage(stage);
+      });
+
+      document.getElementById('openEditorBtn').addEventListener('click', () => {
+        mainMenuModal.classList.remove('active');
+        editorToolbar.classList.add('active');
+        gameInstance.state = GAME_STATE.EDITOR;
+        gameInstance.editor.init();
+      });
+
+      document.getElementById('openHelpBtn').addEventListener('click', () => {
+        helpModal.classList.add('active');
+      });
+
+      document.getElementById('closeHelpBtn').addEventListener('click', () => {
+        helpModal.classList.remove('active');
+      });
+
+      // 顶部工具栏控制
+      document.getElementById('muteBtn').addEventListener('click', () => {
+        gameInstance.toggleMute();
+      });
+
+      document.getElementById('pauseBtn').addEventListener('click', () => {
+        gameInstance.togglePause();
+      });
+
+      document.getElementById('menuBtn').addEventListener('click', () => {
+        editorToolbar.classList.remove('active');
+        gameOverModal.classList.remove('active');
+        victoryModal.classList.remove('active');
+        mainMenuModal.classList.add('active');
+        gameInstance.state = GAME_STATE.MENU;
+      });
+
+      // 游戏结束与胜利控制
+      document.getElementById('retryBtn').addEventListener('click', () => {
+        gameOverModal.classList.remove('active');
+        const st = typeof gameInstance.currentStage === 'number' ? gameInstance.currentStage : 1;
+        gameInstance.startStage(st);
+      });
+
+      document.getElementById('gameOverMenuBtn').addEventListener('click', () => {
+        gameOverModal.classList.remove('active');
+        mainMenuModal.classList.add('active');
+      });
+
+      document.getElementById('nextStageBtn').addEventListener('click', () => {
+        victoryModal.classList.remove('active');
+        const next = typeof gameInstance.currentStage === 'number' ? ((gameInstance.currentStage % 5) + 1) : 1;
+        gameInstance.startStage(next);
+      });
+
+      document.getElementById('victoryMenuBtn').addEventListener('click', () => {
+        victoryModal.classList.remove('active');
+        mainMenuModal.classList.add('active');
+      });
+
+      // 编辑器工具栏交互
+      const brushBtns = document.querySelectorAll('.brush-btn');
+      brushBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          brushBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tile = parseInt(btn.dataset.tile, 10);
+          gameInstance.editor.setBrush(tile);
+        });
+      });
+
+      document.getElementById('editorSavePlayBtn').addEventListener('click', () => {
+        editorToolbar.classList.remove('active');
+        gameInstance.editor.saveAndPlay();
+      });
+
+      document.getElementById('editorClearBtn').addEventListener('click', () => {
+        if (confirm('确定要清空除基地外的所有方块吗？')) {
+          gameInstance.editor.clearMap();
+        }
+      });
+
+      document.getElementById('editorExportBtn').addEventListener('click', () => {
+        const json = gameInstance.editor.exportJSON();
+        navigator.clipboard.writeText(json).then(() => {
+          alert('自定义地图代码已复制到剪贴板！');
+        }).catch(() => {
+          prompt('请复制以下地图数据：', json);
+        });
+      });
+
+      document.getElementById('editorImportBtn').addEventListener('click', () => {
+        const json = prompt('请粘贴地图 JSON 数据：');
+        if (json) {
+          if (gameInstance.editor.importJSON(json)) {
+            alert('地图导入成功！');
+          } else {
+            alert('地图数据格式有误，导入失败！');
+          }
+        }
+      });
+
+      document.getElementById('editorExitBtn').addEventListener('click', () => {
+        editorToolbar.classList.remove('active');
+        mainMenuModal.classList.add('active');
+        gameInstance.state = GAME_STATE.MENU;
+      });
+    });
+  </script>
+</body>
+</html>
